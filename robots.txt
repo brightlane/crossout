@@ -1,0 +1,5 @@
+
+User-agent: *
+Allow: /
+
+Sitemap: https://YOURUSERNAME.github.io/crossout/sitemap.xml
