@@ -1,0 +1,504 @@
+name: Crossout Daily Affiliate Blog Engine
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    # Runs daily at 8 AM UTC
+    - cron: "0 8 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  build-crossout-site:
+    runs-on: ubuntu-latest
+
+    steps:
+      # =====================================================
+      # CHECKOUT
+      # =====================================================
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # =====================================================
+      # PYTHON
+      # =====================================================
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # =====================================================
+      # GENERATE BUILD.PY IF MISSING
+      # =====================================================
+
+      - name: Create build.py
+        run: |
+
+          cat > build.py << 'EOF'
+          #!/usr/bin/env python3
+
+          import json
+          import random
+          import shutil
+          from pathlib import Path
+          from datetime import datetime
+
+          AFFILIATE_URL = "https://convert.ctypy.com/aff_c?offer_id=29178&aff_id=21885"
+
+          SITE_NAME = "Crossout Wasteland HQ"
+
+          DOMAIN = "https://YOURUSERNAME.github.io/crossout"
+
+          YEAR = datetime.now().year
+
+          TODAY = datetime.now().strftime("%Y-%m-%d")
+
+          BLOG_TOPICS = [
+              "Best Crossout Weapons",
+              "Crossout PvP Strategy Guide",
+              "Best Beginner Builds",
+              "Top Cabins For Fast Builds",
+              "Best Shotgun Builds",
+              "How To Farm Resources Fast",
+              "Crossout Crafting Guide",
+              "Best PvE Builds",
+              "How To Win More PvP Matches",
+              "Best Tank Builds"
+          ]
+
+          topic = random.choice(BLOG_TOPICS)
+
+          PAGES = [
+              ("index", "Crossout Beginner Guide"),
+              ("weapons", "Best Crossout Weapons"),
+              ("builds", "Best Crossout Builds"),
+              ("pvp", "Crossout PvP Guide"),
+              ("crafting", "Crossout Crafting Guide"),
+              ("factions", "Crossout Factions"),
+              ("cabins", "Best Crossout Cabins"),
+              ("tips", "Crossout Tips"),
+          ]
+
+          BASE = Path(".")
+          DIST = BASE / "dist"
+          ASSETS = DIST / "assets"
+          BLOG = DIST / "blog"
+
+          if DIST.exists():
+              shutil.rmtree(DIST)
+
+          DIST.mkdir()
+          ASSETS.mkdir()
+          BLOG.mkdir()
+
+          css = '''
+          body{
+              background:#111;
+              color:#ddd;
+              font-family:Arial;
+              margin:0;
+              line-height:1.7;
+          }
+
+          header{
+              background:#181818;
+              padding:20px;
+              border-bottom:3px solid #ff6600;
+              position:sticky;
+              top:0;
+          }
+
+          .logo{
+              font-size:2rem;
+              color:#ff6600;
+              font-weight:bold;
+          }
+
+          nav{
+              margin-top:15px;
+          }
+
+          nav a{
+              color:#ccc;
+              text-decoration:none;
+              margin-right:15px;
+          }
+
+          nav a:hover{
+              color:#ff6600;
+          }
+
+          .hero{
+              padding:90px 20px;
+              text-align:center;
+          }
+
+          .hero h1{
+              color:#ff6600;
+              font-size:3rem;
+          }
+
+          .container{
+              width:92%;
+              max-width:1200px;
+              margin:auto;
+              padding:40px 0;
+          }
+
+          .card{
+              background:#1a1a1a;
+              padding:30px;
+              border-radius:10px;
+              border:1px solid #333;
+              margin-bottom:30px;
+          }
+
+          .cta{
+              display:inline-block;
+              background:#ff6600;
+              color:white;
+              padding:14px 28px;
+              border-radius:6px;
+              text-decoration:none;
+              margin-top:20px;
+              font-weight:bold;
+          }
+
+          footer{
+              background:#181818;
+              padding:40px;
+              text-align:center;
+              border-top:3px solid #ff6600;
+          }
+          '''
+
+          (ASSETS / "style.css").write_text(css)
+
+          def nav():
+
+              links = []
+
+              for slug, title in PAGES:
+
+                  file = (
+                      "index.html"
+                      if slug == "index"
+                      else f"{slug}.html"
+                  )
+
+                  links.append(
+                      f'<a href="/crossout/{file}">{title}</a>'
+                  )
+
+              links.append(
+                  '<a href="/crossout/blog/">Daily Blog</a>'
+              )
+
+              return "\\n".join(links)
+
+          template = '''
+          <!DOCTYPE html>
+          <html lang="en">
+
+          <head>
+
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+          <title>{title}</title>
+
+          <meta name="description" content="{description}">
+          <link rel="stylesheet" href="assets/style.css">
+
+          </head>
+
+          <body>
+
+          <header>
+
+          <div class="logo">
+          Crossout Wasteland HQ
+          </div>
+
+          <nav>
+          {navigation}
+          </nav>
+
+          </header>
+
+          <section class="hero">
+
+          <h1>{title}</h1>
+
+          <p>
+          {description}
+          </p>
+
+          <a class="cta" href="{affiliate}">
+          Play Crossout Free
+          </a>
+
+          </section>
+
+          <section class="container">
+
+          <div class="card">
+
+          <h2>{title}</h2>
+
+          <p>
+          Crossout is a brutal post-apocalyptic MMO where players build custom war vehicles using armor, cabins, machine guns, cannons, boosters, drones, and heavy weapons.
+          </p>
+
+          <p>
+          Battle online against real players in PvP combat and complete dangerous PvE missions for rewards and resources.
+          </p>
+
+          <a class="cta" href="{affiliate}">
+          Start Playing Now
+          </a>
+
+          </div>
+
+          </section>
+
+          <footer>
+
+          <p>
+          © {year} Crossout Wasteland HQ
+          </p>
+
+          <a class="cta" href="{affiliate}">
+          Join Crossout
+          </a>
+
+          </footer>
+
+          </body>
+          </html>
+          '''
+
+          # ============================================
+          # CREATE MAIN PAGES
+          # ============================================
+
+          for slug, title in PAGES:
+
+              file = (
+                  "index.html"
+                  if slug == "index"
+                  else f"{slug}.html"
+              )
+
+              html = template.format(
+                  title=title,
+                  description=title,
+                  navigation=nav(),
+                  affiliate=AFFILIATE_URL,
+                  year=YEAR
+              )
+
+              (DIST / file).write_text(html)
+
+          # ============================================
+          # DAILY BLOG POST
+          # ============================================
+
+          blog_slug = TODAY
+
+          blog_html = f'''
+          <!DOCTYPE html>
+          <html lang="en">
+
+          <head>
+
+          <meta charset="UTF-8">
+
+          <title>{topic} | Crossout Daily Blog</title>
+
+          <link rel="stylesheet" href="../assets/style.css">
+
+          </head>
+
+          <body>
+
+          <header>
+
+          <div class="logo">
+          Crossout Daily Blog
+          </div>
+
+          </header>
+
+          <section class="hero">
+
+          <h1>{topic}</h1>
+
+          <p>
+          Daily Crossout strategy and gameplay guide.
+          </p>
+
+          <a class="cta" href="{AFFILIATE_URL}">
+          Play Crossout Now
+          </a>
+
+          </section>
+
+          <section class="container">
+
+          <div class="card">
+
+          <h2>{topic}</h2>
+
+          <p>
+          Crossout rewards players who master positioning, weapon synergy, armor placement, and vehicle mobility.
+          </p>
+
+          <p>
+          Building effective vehicles requires balancing durability, energy usage, firepower, and speed.
+          </p>
+
+          <p>
+          Experiment with different cabins, movement systems, and weapon combinations to discover your ideal combat strategy.
+          </p>
+
+          <a class="cta" href="{AFFILIATE_URL}">
+          Download Crossout Free
+          </a>
+
+          </div>
+
+          </section>
+
+          <footer>
+
+          <a class="cta" href="{AFFILIATE_URL}">
+          Join The Wasteland
+          </a>
+
+          </footer>
+
+          </body>
+          </html>
+          '''
+
+          (BLOG / f"{blog_slug}.html").write_text(blog_html)
+
+          # ============================================
+          # BLOG INDEX
+          # ============================================
+
+          posts = sorted(BLOG.glob("*.html"), reverse=True)
+
+          links = []
+
+          for post in posts:
+
+              links.append(
+                  f'<li><a href="{post.name}">{post.stem}</a></li>'
+              )
+
+          blog_index = f'''
+          <!DOCTYPE html>
+          <html>
+
+          <head>
+
+          <title>Crossout Daily Blog</title>
+
+          <link rel="stylesheet" href="../assets/style.css">
+
+          </head>
+
+          <body>
+
+          <section class="container">
+
+          <div class="card">
+
+          <h1>Crossout Daily Blog</h1>
+
+          <ul>
+
+          {"".join(links)}
+
+          </ul>
+
+          <a class="cta" href="{AFFILIATE_URL}">
+          Play Crossout
+          </a>
+
+          </div>
+
+          </section>
+
+          </body>
+
+          </html>
+          '''
+
+          (BLOG / "index.html").write_text(blog_index)
+
+          # ============================================
+          # SITEMAP
+          # ============================================
+
+          urls = []
+
+          for slug, _ in PAGES:
+
+              if slug == "index":
+                  loc = f"{DOMAIN}/"
+              else:
+                  loc = f"{DOMAIN}/{slug}.html"
+
+              urls.append(f"<url><loc>{loc}</loc></url>")
+
+          urls.append(
+              f"<url><loc>{DOMAIN}/blog/{blog_slug}.html</loc></url>"
+          )
+
+          sitemap = f'''<?xml version="1.0" encoding="UTF-8"?>
+
+          <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+          {"".join(urls)}
+
+          </urlset>
+          '''
+
+          (DIST / "sitemap.xml").write_text(sitemap)
+
+          robots = f'''
+          User-agent: *
+          Allow: /
+
+          Sitemap: {DOMAIN}/sitemap.xml
+          '''
+
+          (DIST / "robots.txt").write_text(robots)
+
+          print("Crossout affiliate site generated successfully")
+          EOF
+
+      # =====================================================
+      # BUILD SITE
+      # =====================================================
+
+      - name: Generate Site
+        run: python build.py
+
+      # =====================================================
+      # DEPLOY TO GH-PAGES
+      # =====================================================
+
+      - name: Deploy To GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
